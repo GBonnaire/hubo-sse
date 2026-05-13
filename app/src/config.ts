@@ -28,9 +28,10 @@ export function loadConfig(opts?: { envFile?: string; localEnvFile?: string }): 
   const env: Record<string, string | undefined> = { ...base, ...local, ...process.env }
 
   const values: Record<string, unknown> = {}
-  if (env.HUBO_PORT) {
-    const port = parseInt(env.HUBO_PORT, 10)
-    if (isNaN(port)) throw new Error(`HUBO_PORT invalide : "${env.HUBO_PORT}" n'est pas un entier`)
+  const rawPort = env.PORT ?? "80"
+  if (rawPort) {
+    const port = parseInt(rawPort, 10)
+    if (isNaN(port)) throw new Error(`Port invalide : "${rawPort}" n'est pas un entier`)
     values.port = port
   }
   if (env.REDIS_URL) values.redis = env.REDIS_URL
