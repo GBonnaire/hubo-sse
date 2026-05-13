@@ -10,13 +10,14 @@ services:
         image: node:24.14.0-alpine
         volumes:
             - ./app:/var/www/app
+            - /var/www/app/node_modules
         working_dir: /var/www/app
         env_file:
             - path: ./app/.env
               required: true
             - path: ./app/.env.local
               required: false
-        command: npm run dev
+        command: sh -c "npm install && npm run dev"
         depends_on:
             - db
             - redis

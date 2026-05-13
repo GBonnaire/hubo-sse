@@ -87,7 +87,7 @@ export async function tenantAddCommand(args: string[]): Promise<void> {
 
   try {
     const tenant = await prisma.tenant.create({ data })
-    printTenantTable(tenant, secretGenerated)
+    printTenantTable({ ...tenant, origins: tenant.origins as string[] }, secretGenerated)
   } catch (err: unknown) {
     if ((err as { code?: string })?.code === 'P2002') {
       console.error(`Error: Tenant '${values['app-id']}' already exists.`)
