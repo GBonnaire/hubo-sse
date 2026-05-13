@@ -28,7 +28,7 @@ export function loadConfig(opts?: { envFile?: string; localEnvFile?: string }): 
   const env: Record<string, string | undefined> = { ...base, ...local, ...process.env }
 
   const values: Record<string, unknown> = {}
-  const rawPort = env.PORT ?? "80"
+  const rawPort = env.PORT ?? "3000"
   if (rawPort) {
     const port = parseInt(rawPort, 10)
     if (isNaN(port)) throw new Error(`Port invalide : "${rawPort}" n'est pas un entier`)
