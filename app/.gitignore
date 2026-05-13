@@ -4,8 +4,8 @@ dist/
 *.pid
 *.log
 
-# CONFIG ENV LOCAL
-.env.local
+# CONFIG ENV
+.env
 
 ## FILE MACOS ##
 .DS_Store
