@@ -3,21 +3,19 @@
   "version": "0.1.0",
   "description": "SSE hub multi-tenant auto-hébergé",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     }
   },
   "bin": {
     "hubo": "./dist/cli/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsc -p tsconfig.build.json && node --input-type=commonjs -e \"const fs=require('fs'),p='dist/cli/index.js';fs.writeFileSync(p,'#!/usr/bin/env node\\n'+fs.readFileSync(p,'utf8'))\"",
     "dev": "tsx watch src/cli/index.ts start",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -59,7 +57,6 @@
     "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^10.2.1",
     "prettier": "^3.8.3",
-    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.0",
