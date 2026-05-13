@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 afterEach(() => {
-  delete process.env.HUBO_PORT
+  delete process.env.PORT
   delete process.env.REDIS_URL
   delete process.env.DATABASE_URL
   delete process.env.HUBO_LOG_LEVEL
@@ -21,7 +21,7 @@ function writeTmpEnv(content: string): string {
 }
 
 const validEnv = `
-HUBO_PORT=4000
+PORT=4000
 REDIS_URL=redis://redis:6379
 DATABASE_URL=mysql://admin:admin@db:3306/hubo
 HUBO_LOG_LEVEL=debug
@@ -49,7 +49,7 @@ describe('loadConfig', () => {
 
   it('process.env surcharge .env', () => {
     const path = writeTmpEnv(validEnv)
-    process.env.HUBO_PORT = '9000'
+    process.env.PORT = '9000'
     const config = loadConfig({ envFile: path })
     unlinkSync(path)
     expect(config.port).toBe(9000)
@@ -57,7 +57,7 @@ describe('loadConfig', () => {
 
   it('.env.local surcharge .env', () => {
     const envFile = writeTmpEnv(validEnv)
-    const localFile = writeTmpEnv('HUBO_PORT=7777')
+    const localFile = writeTmpEnv('PORT=7777')
     const config = loadConfig({ envFile, localEnvFile: localFile })
     unlinkSync(envFile)
     unlinkSync(localFile)
@@ -66,8 +66,8 @@ describe('loadConfig', () => {
 
   it('process.env surcharge .env.local', () => {
     const envFile = writeTmpEnv(validEnv)
-    const localFile = writeTmpEnv('HUBO_PORT=7777')
-    process.env.HUBO_PORT = '9999'
+    const localFile = writeTmpEnv('PORT=7777')
+    process.env.PORT = '9999'
     const config = loadConfig({ envFile, localEnvFile: localFile })
     unlinkSync(envFile)
     unlinkSync(localFile)
@@ -83,7 +83,7 @@ describe('loadConfig', () => {
   })
 
   it('champ requis manquant → erreur avec le nom du champ', () => {
-    const path = writeTmpEnv('HUBO_PORT=3000')
+    const path = writeTmpEnv('PORT=3000')
     try {
       expect(() => loadConfig({ envFile: path })).toThrow(/redis|database/i)
     } finally {
