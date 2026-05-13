@@ -1,0 +1,44 @@
+services:
+    db:
+        image: mariadb
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: hubo
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: admin
+    node:
+        image: node:24.14.0-alpine
+        volumes:
+            - ./app:/var/www/app
+        working_dir: /var/www/app
+        env_file:
+            - path: ./app/.env
+              required: true
+            - path: ./app/.env.local
+              required: false
+        command: npm run dev
+        depends_on:
+            - db
+            - redis
+        ports:
+            - "80:80"
+    phpmyadmin:
+        image: phpmyadmin
+        ports:
+            - "8080:80"
+        depends_on:
+            - db
+    maildev:
+        image: maildev/maildev
+        command: bin/maildev --web 80 --smtp 25 --hide-extensions STARTTLS
+        ports:
+            - "8081:80"
+    redis:
+        image: redis:8-alpine
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+
+volumes:
+    redis_data:

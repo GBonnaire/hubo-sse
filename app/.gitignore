@@ -1,0 +1,17 @@
+node_modules/
+dist/
+
+*.pid
+*.log
+
+# CONFIG ENV LOCAL
+.env.local
+
+## FILE MACOS ##
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
