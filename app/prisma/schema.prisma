@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                   Int      @id @default(autoincrement())
+  appId                String   @unique @map("app_id") @db.VarChar(100)
+  secret               String   @db.Text
+  algorithm            String   @default("HS256") @db.VarChar(10)
+  publicKey            String?  @map("public_key") @db.Text
+  origins              Json     @default("[]")
+  streamTtl            Int      @default(3600) @map("stream_ttl")
+  maxStreamLength      Int      @default(10000) @map("max_stream_length")
+  rateLimitPublish     Int      @default(100) @map("rate_limit_publish")
+  rateLimitConnections Int      @default(500) @map("rate_limit_connections")
+  maxEventSize         Int      @default(65536) @map("max_event_size")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("tenants")
+}
