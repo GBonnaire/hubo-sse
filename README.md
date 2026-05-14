@@ -2,13 +2,14 @@
 
 Hub Server-Sent Events pour Node.js. Alternative légère à Mercure, sans Go. Chaque tenant dispose de son propre canal d'événements isolé, sécurisé par JWT HS256/RS256, avec gestion des limites de débit et persistance via Redis Streams + MySQL.
 
+Transparence IA : Application vibecodée à 80% par Claude AI
 ---
 
 ## Prérequis
 
-- **Node.js** ≥ 20 LTS
-- **Redis** ≥ 7.0
-- **MySQL** ≥ 8.0 ou **MariaDB** ≥ 10.11
+- **Node.js** >= 20 LTS
+- **Redis** >= 7.0
+- **MySQL** >= 8.0 ou **MariaDB** >= 10.11
 
 ---
 
@@ -29,7 +30,22 @@ npm run build
 
 ### 1. Créer la configuration
 
-Pour les surcharges locales (non versionnées), créez un `.env.local` :
+Copier `.env.example` en `.env` et renseigner les valeurs :
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `PORT` | `3000` | Port d'écoute (prioritaire sur `HUBO_PORT`, injecté par Passenger) |
+| `HUBO_LOG_LEVEL` | `info` | `debug` \| `info` \| `warn` \| `error` |
+| `DATABASE_URL` | — | URL MySQL/MariaDB (ex: `mysql://user:pass@host:3306/db`) |
+| `REDIS_URL` | — | URL Redis (ex: `redis://localhost:6379`) |
+| `HUBO_HTTPS_REDIRECT` | `false` | Redirection HTTP→HTTPS via `x-forwarded-proto` |
+| `HUBO_ADMIN_TOKEN` | — | Token Bearer pour protéger `/metrics` |
+
+Pour les surcharges locales (non versionnées), créer un `.env.local` :
 
 ```bash
 # .env.local  (prioritaire sur .env)
@@ -45,7 +61,7 @@ node dist/cli/index.js tenant add \
   --origins=http://localhost:8080
 ```
 
-`--secret` est facultatif, si vous ne le renseignez pas, hubo vous génèrera un secret automatiquement.
+`--secret` est facultatif — Hubo génère un secret automatiquement si absent.
 
 ### 3. Démarrer le hub
 
@@ -53,14 +69,9 @@ node dist/cli/index.js tenant add \
 node dist/cli/index.js start
 ```
 
-N'oublie pas de charger les fichier env : `--env-file .env --env-file .env.local`
-> **Note :** `--env-file` est disponible depuis Node.js 16.
+### 4. Documentation d'intégration
 
-
-### 4. Documentation pour le mettre dans votre application
-Retrouver les autres documentations dans `/docs`
-
-- Documentation NextJs : `/docs/integration-nextjs.md`
+- Documentation Next.js : `/docs/integration-nextjs.md`
 - Documentation Symfony : `/docs/integration-symfony.md`
 
 ---
@@ -81,10 +92,10 @@ Tous les JWT doivent être signés **HS256** (ou **RS256** pour la clé publique
 
 | Claim | Requis | Description |
 |-------|--------|-------------|
-| `iss` | ✅ | `appId` du tenant (identifiant de l'application) |
-| `mode` | ✅ | `"publish"` ou `"subscribe"` |
-| `topics` | ✅ | Liste des topics autorisés (supporte les wildcards `*`) |
-| `exp` | ✅ | Expiration Unix timestamp |
+| `iss` | oui | `appId` du tenant (identifiant de l'application) |
+| `mode` | oui | `"publish"` ou `"subscribe"` |
+| `topics` | oui | Liste des topics autorisés (supporte les wildcards `*`) |
+| `exp` | oui | Expiration Unix timestamp |
 | `jti` | — | ID unique du token (pour la révocation via blacklist) |
 | `session_id` | — | ID de session (limite par connexion simultanée) |
 
@@ -156,8 +167,6 @@ data: {}
 
 ### `GET /health`
 
-Vérifie l'état du hub.
-
 ```bash
 curl http://localhost/health
 ```
@@ -209,20 +218,7 @@ node dist/cli/index.js token revoke --jti=uuid-du-token --tenant=my-app --exp=17
 
 ## Déploiement
 
-### Variables d'environnement
-
-Les variables sont lues depuis `.env`, puis `.env.local` (surcharge), puis `process.env` (priorité maximale).
-
-| Variable | Défaut  | Description                                            |
-|----------|---------|--------------------------------------------------------|
-| `HUBO_PORT` | `80`    | Port d'écoute                                          |
-| `REDIS_URL` | —       | URL Redis (ex: `redis://redis:6379`)                   |
-| `DATABASE_URL` | —       | URL MySQL/MariaDB (ex: `mysql://user:pass@db:3306/db`) |
-| `HUBO_LOG_LEVEL` | `info`  | `debug` \| `info` \| `warn` \| `error`                 |
-| `HUBO_HTTPS_REDIRECT` | `false` | Redirection HTTP→HTTPS via `x-forwarded-proto`         |
-| `HUBO_ADMIN_TOKEN` | —       | Token Bearer pour protéger `/metrics`                  |
-
-### Production sans Docker
+### Production standard (PM2)
 
 ```bash
 git clone git@github.com:GBonnaire/hubo-sse.git
@@ -239,35 +235,121 @@ pm2 start dist/cli/index.js --name hubo -- start
 node dist/cli/index.js start
 ```
 
-### Déploiement sur cPanel (Passenger)
+---
 
-1. Dans **cPanel → Setup Node.js App** : sélectionner Node.js ≥ 20, pointer vers le répertoire `app/`.
+### Déploiement sur O2Switch (Phusion Passenger / cPanel)
 
-2. Dans le dossier de l'app, créer `.htaccess` :
+#### Prérequis
+
+- Node.js >= 20 (testé avec v24)
+- Redis
+- Base de données MySQL/MariaDB
+- Accès SSH
+
+#### Fichiers de configuration spécifiques
+
+**`.npmrc`** — force l'installation des devDependencies :
+
+```
+include=dev
+```
+
+Les devDependencies (`typescript`, `@types/node`, etc.) ne sont pas installées par défaut sur O2Switch même sans `NODE_ENV=production`. Ce fichier est indispensable pour que le build fonctionne.
+
+**`tsconfig.json`** — les types Node doivent être explicites :
+
+```json
+"types": ["node"]
+```
+
+**`prisma/schema.prisma`** — cible le runtime OpenSSL d'O2Switch :
+
+```prisma
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.0.x"]
+}
+```
+
+Sans cette ligne, Prisma génère un binaire pour `debian-openssl-1.1.x` (environnement local) qui ne fonctionne pas sur le serveur.
+
+**`server.js`** — point d'entrée Passenger (IIFE async pour contourner les limitations ESM) :
+
+```js
+(async () => {
+  const { loadConfig } = await import('./dist/config.js');
+  const { buildApp } = await import('./dist/app.js');
+  // ... démarrage sur 0.0.0.0
+})();
+```
+
+#### Procédure de déploiement
+
+```bash
+# 1. Sur le serveur, dans le dossier de l'app
+npm install --include=dev --ignore-scripts
+npx prisma generate
+npm run build
+npx prisma migrate deploy
+```
+
+> **Important :** toujours utiliser `--ignore-scripts` au premier `npm install`. Le script `postinstall` (`prisma generate`) échoue si les dépendances ne sont pas encore installées. Lancer `npx prisma generate` manuellement après.
+
+#### Configuration Passenger (`.htaccess`)
 
 ```apache
 PassengerAppType node
-PassengerStartupFile dist/cli/index.js
+PassengerStartupFile server.js
+PassengerNodejs "/home/<user>/nodevenv/<app>/<version>/bin/node"
 
-# Éviter la coupure des flux SSE par le proxy
+# Eviter la coupure des flux SSE par le proxy
 Header set X-Accel-Buffering "no"
 Header set Cache-Control "no-cache"
 ProxyTimeout 3600
 ProxyReadTimeout 3600
 ```
 
-3. Créer un fichier `app.js` à la racine si Passenger exige un point d'entrée spécifique :
+Remplacer `<user>`, `<app>` et `<version>` par les valeurs de votre environnement Node.js cPanel.
 
-```javascript
-// app.js
-import('./dist/cli/index.js')
+#### Variables d'environnement
+
+Définir les variables dans **cPanel → Setup Node.js App** (pas dans `.env`) :
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | URL MySQL/MariaDB |
+| `REDIS_URL` | URL Redis |
+| `HUBO_LOG_LEVEL` | Niveau de log (`info` recommandé en prod) |
+| `HUBO_HTTPS_REDIRECT` | `true` si le site est en HTTPS |
+| `HUBO_ADMIN_TOKEN` | Token pour protéger `/metrics` |
+
+> `PORT` est injecté automatiquement par Passenger — ne pas le définir manuellement. L'app ne doit jamais écouter sur le port 80 directement.
+
+#### Redémarrage
+
+Après chaque déploiement, redémarrer l'application depuis **cPanel → Setup Node.js App**.
+
+#### Points d'attention
+
+- `dist/` doit être buildé sur le serveur, ne pas le committer dans git.
+- Le `node_modules` réel est dans `/home/<user>/nodevenv/.../lib/node_modules/` et non dans le dossier de l'app.
+- Passenger charge le fichier de démarrage via `require()` — le fichier `server.js` contourne ce problème en wrappant les imports ESM dynamiques dans une IIFE async.
+- En cas d'erreur Prisma au démarrage, vérifier que `binaryTargets` est bien défini dans `schema.prisma` et que `npx prisma generate` a été relancé sur le serveur.
+
+---
+
+### Docker (développement)
+
+```bash
+docker compose up
 ```
 
-4. Dans le panneau Node.js App de cPanel, définir les variables d'environnement (`DATABASE_URL`, `REDIS_URL`, `HUBO_PORT`).
+La configuration Docker monte le dossier `app/` dans le container et lance `npm install && npm run dev` au démarrage. Le `node_modules` est isolé dans un volume anonyme pour éviter les conflits de binaires entre macOS et Linux.
 
-5. Redémarrer l'application depuis cPanel.
-
-> **Note :** Si les connexions SSE se coupent après 30-60s, vérifier que le proxy Apache ne bufferise pas la réponse. Le header `X-Accel-Buffering: no` est envoyé automatiquement par Hubo.
+```bash
+# Lancer les migrations au premier démarrage
+docker compose exec node npx prisma migrate deploy
+```
 
 ---
 
@@ -294,14 +376,14 @@ Le tenant n'existe pas. Vérifier avec `node dist/cli/index.js tenant list` et c
 
 ---
 
-**Q : La connexion SSE se coupe après 30-60s sur cPanel/nginx**
+**Q : La connexion SSE se coupe après 30-60s**
 
 Ajouter dans `.htaccess` :
 ```apache
 Header set X-Accel-Buffering "no"
 ProxyTimeout 3600
 ```
-Pour nginx, ajouter dans le bloc `location` :
+Pour nginx :
 ```nginx
 proxy_buffering off;
 proxy_read_timeout 3600s;
@@ -311,9 +393,8 @@ proxy_read_timeout 3600s;
 
 **Q : 429 `rate_limit_exceeded` sur `/publish`**
 
-Le tenant a dépassé sa limite de publications par seconde. Par défaut : 100/sec. Modifier avec :
+Le tenant a dépassé sa limite de publications par seconde (défaut : 100/sec). Modifier avec :
 ```bash
-# Via Prisma Studio ou directement en base
 UPDATE tenants SET rate_limit_publish = 500 WHERE app_id = 'my-app';
 ```
 
@@ -321,7 +402,7 @@ UPDATE tenants SET rate_limit_publish = 500 WHERE app_id = 'my-app';
 
 **Q : 429 `too_many_connections` sur `/subscribe`**
 
-Le tenant a dépassé sa limite de connexions simultanées. Par défaut : 500. Modifier `rate_limit_connections` en base.
+Le tenant a dépassé sa limite de connexions simultanées (défaut : 500). Modifier `rate_limit_connections` en base.
 
 ---
 
