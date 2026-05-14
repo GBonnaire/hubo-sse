@@ -18,6 +18,12 @@ export default fp<{ manager: TenantsManager }>(async (app, opts) => {
     reply.header('Access-Control-Allow-Origin', origin)
     reply.header('Access-Control-Allow-Credentials', 'true')
     reply.header('Vary', 'Origin')
+    // Nécessaire pour les réponses SSE qui utilisent reply.hijack() + writeHead() :
+    // writeHead() ne tient pas compte des headers bufferisés par Fastify (reply.header),
+    // donc on les écrit aussi sur reply.raw directement.
+    reply.raw.setHeader('Access-Control-Allow-Origin', origin)
+    reply.raw.setHeader('Access-Control-Allow-Credentials', 'true')
+    reply.raw.setHeader('Vary', 'Origin')
 
     if (req.method === 'OPTIONS') {
       reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
