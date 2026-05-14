@@ -285,8 +285,15 @@ Sans cette ligne, Prisma génère un binaire pour `debian-openssl-1.1.x` (enviro
 
 #### Procédure de déploiement
 
+Le Node.js système d'O2Switch est trop ancien pour Fastify v5. Toutes les commandes SSH doivent utiliser le Node.js du nodevenv :
+
 ```bash
-# 1. Sur le serveur, dans le dossier de l'app
+source ~/nodevenv/<app>/<version>/bin/activate
+```
+
+Ensuite, dans le dossier de l'app :
+
+```bash
 npm install --include=dev --ignore-scripts
 npx prisma generate
 npm run build
@@ -294,6 +301,15 @@ npx prisma migrate deploy
 ```
 
 > **Important :** toujours utiliser `--ignore-scripts` au premier `npm install`. Le script `postinstall` (`prisma generate`) échoue si les dépendances ne sont pas encore installées. Lancer `npx prisma generate` manuellement après.
+
+#### Commandes CLI (gestion des tenants, tokens…)
+
+Même règle : utiliser le Node.js du nodevenv, pas le `node` système.
+
+```bash
+source ~/nodevenv/<app>/<version>/bin/activate
+node dist/cli/index.js tenant add --app-id=my-app --origins=https://example.com
+```
 
 #### Configuration Passenger (`.htaccess`)
 
