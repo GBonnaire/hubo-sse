@@ -36,6 +36,10 @@ export class SubscriberRegistry {
     this.connections.get(topicKey)?.delete(connection)
   }
 
+  countByTopic(topicKey: string): number {
+    return this.connections.get(topicKey)?.size ?? 0
+  }
+
   /**
    * Envoie `event` à toutes les connexions abonnées à `topicKey`.
    * L'envoi est synchrone et fire-and-forget : une erreur d'écriture sur une

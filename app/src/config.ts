@@ -1,7 +1,20 @@
 import { z } from 'zod'
 import { parse as dotenvParse } from 'dotenv'
 import { readFileSync, existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+function readPackageVersion(): string {
+  try {
+    const dir = dirname(fileURLToPath(import.meta.url))
+    const pkg = JSON.parse(readFileSync(resolve(dir, '../package.json'), 'utf-8')) as { version?: string }
+    return pkg.version ?? '0.0.0'
+  } catch {
+    return '0.0.0'
+  }
+}
+
+export const VERSION = readPackageVersion()
 
 const ConfigSchema = z.object({
   port: z.number().int().positive().default(3000),

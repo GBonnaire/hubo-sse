@@ -17,6 +17,7 @@ import { subscribeRoutes } from './routes/subscribe.js'
 import { healthRoutes } from './routes/health.js'
 import { metricsRoutes } from './routes/metrics.js'
 import { homeRoutes } from './routes/home.js'
+import { listenersRoutes } from './routes/listeners.js'
 import { ConnectionCounter } from './subscriber/ConnectionCounter.js'
 import { MetricsRegistry } from './metrics/MetricsRegistry.js'
 import { PubSubManager } from './redis/PubSubManager.js'
@@ -96,6 +97,7 @@ export async function buildApp(
     const publisherService = new PublisherService(registry, streamRepo, manager, logger, redis, metrics)
     await app.register(publishRoutes, { manager, publisherService, redis, metrics })
     await app.register(subscribeRoutes, { manager, registry, counter, streamRepo, redis, metrics })
+    await app.register(listenersRoutes, { manager, registry })
 
     const pubSubSubscriber = createPubSubSubscriberRedis(config.redis)
     const pubSubManager = new PubSubManager(pubSubSubscriber, registry)
