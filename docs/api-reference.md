@@ -11,6 +11,7 @@ Ce document décrit tous les endpoints exposés par Hubo, les payloads associés
 3. [Endpoints](#3-endpoints)
    - [POST /publish](#post-publish)
    - [GET /subscribe](#get-subscribe)
+   - [GET /listeners/:topic](#get-listenerstopic)
    - [GET /health](#get-health)
    - [GET /metrics](#get-metrics)
    - [GET /](#get-)
@@ -330,6 +331,55 @@ url.searchParams.set('lastEventId', lastId)
 ```
 
 Les événements sont conservés dans Redis Streams pendant le TTL du tenant (défaut : 1 heure). Au-delà, les événements anciens ne sont plus disponibles pour le replay.
+
+---
+
+### GET /listeners/:topic
+
+Retourne le nombre de connexions SSE actives sur un topic donné pour le tenant authentifié.
+
+**Authentification :** `Authorization: Bearer <token>` avec `mode: "publish"`.
+
+#### Requête
+
+```
+GET /listeners/commandes:42:statut
+Authorization: Bearer <publisher_token>
+```
+
+#### Paramètre de chemin
+
+| Paramètre | Description |
+|-----------|-------------|
+| `topic` | Le topic exact à interroger (pas de wildcard). Scopé automatiquement au tenant du JWT. |
+
+#### Réponse 200
+
+```json
+{ "topic": "commandes:42:statut", "listeners": 7 }
+```
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `topic` | `string` | Le topic interrogé (tel que passé dans l'URL) |
+| `listeners` | `number` | Nombre de connexions SSE actives sur ce topic pour ce tenant |
+
+#### Erreurs
+
+| Code HTTP | `error` | Cause |
+|-----------|---------|-------|
+| 401 | `missing_token` | Header `Authorization` absent ou mal formé |
+| 401 | `invalid_token` | Signature invalide ou token malformé |
+| 401 | `token_expired` | Token expiré |
+| 401 | `unknown_tenant` | `iss` inconnu |
+| 403 | `wrong_mode` | Token avec `mode: "subscribe"` utilisé |
+
+#### Exemple curl
+
+```bash
+curl "https://hubo.mon-domaine.com/listeners/commandes:42:statut" \
+  -H "Authorization: Bearer $PUBLISHER_TOKEN"
+```
 
 ---
 

@@ -165,6 +165,26 @@ data: {}
 
 ---
 
+### `GET /listeners/:topic`
+
+Retourne le nombre de connexions SSE actives sur un topic pour le tenant authentifié.
+
+**Authentification :** token publisher (`mode: "publish"`).
+
+```bash
+curl "http://localhost/listeners/orders:42:status" \
+  -H "Authorization: Bearer $PUBLISHER_TOKEN"
+```
+
+**Réponse 200 :**
+```json
+{ "topic": "orders:42:status", "listeners": 7 }
+```
+
+**Erreurs :** `401 missing_token`, `401 invalid_token`, `401 token_expired`, `403 wrong_mode`
+
+---
+
 ### `GET /health`
 
 ```bash

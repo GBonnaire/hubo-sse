@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { AppConfig } from '../config.js'
+import { VERSION } from '../config.js'
 import type { ConnectionCounter } from '../subscriber/ConnectionCounter.js'
 import { healthHandler } from './health.js'
 
@@ -45,7 +46,7 @@ function renderServiceRow(name: string, status: ServiceStatus): string {
   </div>`
 }
 
-function renderPage(status: GlobalStatus, redis: ServiceStatus, database: ServiceStatus): string {
+function renderPage(status: GlobalStatus, redis: ServiceStatus, database: ServiceStatus, version: string): string {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -99,7 +100,7 @@ function renderPage(status: GlobalStatus, redis: ServiceStatus, database: Servic
 <body>
 <div class="card">
   <h1>hu<span>bo</span></h1>
-  <p class="tagline">Hub SSE</p>
+  <p class="tagline">Hub SSE — v${version}</p>
 
   ${renderBadge(status)}
 
@@ -114,6 +115,7 @@ function renderPage(status: GlobalStatus, redis: ServiceStatus, database: Servic
     <strong>Hubo</strong>
      — Hub SSE
      — Développé par <a href="https://www.gbonnaire.fr">GBonnaire.fr</a>
+     — <a href="https://github.com/GBonnaire/hubo-sse">GitHub</a>
   </p>
 </footer>
 </body>
@@ -139,6 +141,6 @@ export async function homeRoutes(
 
     return reply
       .header('Content-Type', 'text/html; charset=utf-8')
-      .send(renderPage(status, redis, database))
+      .send(renderPage(status, redis, database, VERSION))
   })
 }
