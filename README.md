@@ -2,7 +2,8 @@
 
 Hub Server-Sent Events pour Node.js. Alternative légère à Mercure, sans Go. Chaque tenant dispose de son propre canal d'événements isolé, sécurisé par JWT HS256/RS256, avec gestion des limites de débit et persistance via Redis Streams + MySQL.
 
-Transparence IA : Application vibecodée à 80% par Claude AI
+*Transparence IA : Application vibecodée à 80% par Claude AI*
+
 ---
 
 ## Prérequis
