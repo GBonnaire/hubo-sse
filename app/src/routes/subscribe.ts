@@ -107,7 +107,7 @@ export async function subscribeRoutes(
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'close',
+      'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
     })
     reply.raw.flushHeaders()
