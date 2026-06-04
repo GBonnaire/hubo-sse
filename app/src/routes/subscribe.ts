@@ -142,7 +142,7 @@ export async function subscribeRoutes(
       }
     }
 
-    request.socket.on('close', () => {
+    reply.raw.on('close', () => {
       request.log.debug({ connection_id: connection.id }, 'SSE connection closed')
       connection.close()
       counter.decrement(jwtPayload.iss, sessionId)
