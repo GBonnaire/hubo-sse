@@ -18,7 +18,9 @@ import { healthRoutes } from './routes/health.js'
 import { metricsRoutes } from './routes/metrics.js'
 import { homeRoutes } from './routes/home.js'
 import { listenersRoutes } from './routes/listeners.js'
+import { unsubscribeRoutes } from './routes/unsubscribe.js'
 import { ConnectionCounter } from './subscriber/ConnectionCounter.js'
+import { ConnectionRegistry } from './subscriber/ConnectionRegistry.js'
 import { MetricsRegistry } from './metrics/MetricsRegistry.js'
 import { PubSubManager } from './redis/PubSubManager.js'
 import { createPubSubSubscriberRedis } from './redis/redis.js'
@@ -94,9 +96,11 @@ export async function buildApp(
     const streamRepo = new StreamRepository(redis)
     const registry = subscriberReg ?? new SubscriberRegistry(metrics)
     counter = new ConnectionCounter(metrics)
+    const connectionRegistry = new ConnectionRegistry()
     const publisherService = new PublisherService(registry, streamRepo, manager, logger, redis, metrics)
     await app.register(publishRoutes, { manager, publisherService, redis, metrics })
-    await app.register(subscribeRoutes, { manager, registry, counter, streamRepo, redis, metrics })
+    await app.register(subscribeRoutes, { manager, registry, counter, connectionRegistry, streamRepo, redis, metrics })
+    await app.register(unsubscribeRoutes, { connectionRegistry })
     await app.register(listenersRoutes, { manager, registry })
 
     const pubSubSubscriber = createPubSubSubscriberRedis(config.redis)

@@ -7,6 +7,7 @@ import type { ConnectionCounter } from '../subscriber/ConnectionCounter.js'
 import type { StreamRepository } from '../redis/StreamRepository.js'
 import { SSEConnection } from '../subscriber/SSEConnection.js'
 import type { MetricsRegistry } from '../metrics/MetricsRegistry.js'
+import type { ConnectionRegistry } from '../subscriber/ConnectionRegistry.js'
 
 export function parseTopics(raw: string | string[] | undefined): string[] {
   if (!raw) return []
@@ -27,12 +28,13 @@ export async function subscribeRoutes(
     manager: TenantsManager
     registry: SubscriberRegistry
     counter: ConnectionCounter
+    connectionRegistry: ConnectionRegistry
     streamRepo?: StreamRepository
     redis?: import('ioredis').Redis
     metrics: MetricsRegistry
   },
 ): Promise<void> {
-  const { manager, registry, counter, streamRepo, redis, metrics } = opts
+  const { manager, registry, counter, connectionRegistry, streamRepo, redis, metrics } = opts
 
   async function verifySubscriberHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
@@ -142,13 +144,23 @@ export async function subscribeRoutes(
       }
     }
 
-    request.socket.on('end', () => {
+    const cleanup = () => {
       request.log.debug({ connection_id: connection.id }, 'SSE connection closed')
       connection.close()
       counter.decrement(jwtPayload.iss, sessionId)
       for (const key of topicKeys) {
         registry.unsubscribe(key, connection)
       }
+    }
+
+    connectionRegistry.register(connection.id, cleanup)
+
+    // Fallback : détection via socket pour les déconnexions inattendues (crash, réseau coupé)
+    request.socket.on('end', () => {
+      connectionRegistry.invoke(connection.id)
     })
+
+    // Envoie l'ID de connexion au client pour lui permettre un close explicite via POST /unsubscribe
+    connection.sendConnected()
   })
 }

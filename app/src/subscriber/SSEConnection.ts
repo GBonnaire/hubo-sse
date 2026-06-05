@@ -77,6 +77,10 @@ export class SSEConnection {
     this.response.write(`: ${comment}\n\n`)
   }
 
+  sendConnected(): void {
+    this.response.write(`event: connected\ndata: ${JSON.stringify({ id: this.id })}\n\n`)
+  }
+
   sendTokenExpired(): void {
     this.response.write('event: token.expired\ndata: {}\n\n')
     this.close()
