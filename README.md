@@ -77,6 +77,77 @@ node dist/cli/index.js start
 
 ---
 
+## Clients & SDK
+
+### SDK PHP — `gbonnaire/hubo-sse-client-php`
+
+> [https://github.com/GBonnaire/hubo-sse-client-php](https://github.com/GBonnaire/hubo-sse-client-php)
+
+SDK backend pour intégrer Hubo dans une application PHP (Laravel, Symfony, pure PHP…). Permet de générer des tokens JWT, publier des événements, interroger les connexions actives et révoquer des tokens.
+
+**Prérequis :** PHP >= 8.4
+
+```bash
+composer require gbonnaire/hubo-sse-client-php
+```
+
+```php
+use HuboSSE\Client;
+
+$client = new Client(
+    url:    'https://hubo.example.com',
+    appId:  'my-app',
+    secret: 'my-32-char-minimum-secret'
+);
+
+// Générer un token subscriber pour le frontend
+$token = $client->subscriberToken(['orders:*']);
+
+// Publier un événement
+$eventId = $client->publish(
+    ['orders:42:status'],
+    ['status' => 'shipped']
+);
+
+// Nombre de connexions actives sur un topic
+$count = $client->listeners('orders:42:status');
+```
+
+---
+
+### Client JS — `hubo-sse-client`
+
+> [https://github.com/GBonnaire/hubo-sse-client](https://github.com/GBonnaire/hubo-sse-client)
+
+Client navigateur pour se connecter au hub SSE. Gère la connexion EventSource, le renouvellement automatique du token, les listeners d'événements nommés, la déconnexion propre lors des navigations et la publication de messages. Sans dépendance, ~4 Ko minifié.
+
+```bash
+npm install hubo-sse-client
+```
+
+Ou via CDN / fichier unique inclus directement dans la page.
+
+```javascript
+const hubo = new HuboManager({
+  hubUrl:    'https://hubo.example.com',
+  tokenUrl:  '/api/hubo-token',
+  topics:    ['orders:*'],
+  onOpen:    () => console.log('Connecté'),
+  onMessage: (data) => console.log(data),
+  on: [
+    { event: 'orders.shipped', handler: (data) => handleShipped(data) },
+  ],
+  onStatusChange: (state) => updateBadge(state),
+});
+
+hubo.connect();
+
+// Déconnexion propre (signal explicite au serveur)
+hubo.disconnect();
+```
+
+---
+
 ## Structure du JWT
 
 Tous les JWT doivent être signés **HS256** (ou **RS256** pour la clé publique).
